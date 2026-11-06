@@ -23,4 +23,11 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+# Install Python scripts as ROS 2 executables
+install(
+  PROGRAMS scripts/waypoints.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME waypoints
+)
+
 ament_package()

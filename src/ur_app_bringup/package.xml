@@ -3,11 +3,16 @@
 <package format="3">
   <name>ur_app_bringup</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>UR5e motion demos using MoveIt 2 and pymoveit2</description>
   <maintainer email="gabriel@kappelgaard.com">gabri</maintainer>
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>pymoveit2</exec_depend>
+  <exec_depend>ur_robot_driver</exec_depend>
+  <exec_depend>ur_moveit_config</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
