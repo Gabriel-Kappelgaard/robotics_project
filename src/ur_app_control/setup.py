@@ -24,6 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'move_to_joints = ur_app_control.move_to_joints:main',
+            'pilz_demo = ur_app_control.pilz_demo:main',
         ],
     },
 )
