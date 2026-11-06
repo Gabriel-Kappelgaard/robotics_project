@@ -47,7 +47,7 @@ The robot in RViz should visit each waypoint in order.
 
 ## Editing the waypoints
 
-Open [`src/ur_app_bringup/scripts/waypoints.py`](src/ur_app_bringup/scripts/waypoints.py)
+Open [`src/ur_app_control/ur_app_demo_py/ur_app_demo/waypoints.py`](src/ur_app_control/ur_app_demo_py/ur_app_demo/waypoints.py)
 and edit the list at the top:
 
 ```python
