@@ -13,7 +13,7 @@ physics (no gravity, contact or collisions with the world).
 | ROS 2 | Jazzy |
 | Robot | UR5e (mock hardware) |
 | Planning | MoveIt 2 via pymoveit2 |
-| Package | `ur_app_bringup` |
+| Package | `ur_app_demo` (Python) |
 
 ---
 
@@ -38,7 +38,7 @@ ros2 launch ur_moveit_config ur_moveit.launch.py ur_type:=ur5e
 ```bash
 source /opt/ros/jazzy/setup.bash
 source ~/robotics_project/install/setup.bash
-ros2 run ur_app_bringup waypoints
+ros2 run ur_app_demo waypoints
 ```
 
 The robot in RViz should visit each waypoint in order.
@@ -75,13 +75,13 @@ Settings below the list:
 |---|---|
 | `SPEED`, `ACCELERATION` | 0.0 to 1.0, fraction of the robot's maximum |
 | `PAUSE_SECONDS` | Pause at each waypoint |
-| `REPEAT` | Times to run the list (`0` = forever, stop with Ctrl+C) |
-| `STOP_ON_FAILURE` | Stop if a waypoint can't be reached |
+
+If a waypoint can't be reached, the robot stops there and the rest is skipped.
 
 After editing, rebuild:
 ```bash
 cd ~/robotics_project
-colcon build --packages-select ur_app_bringup
+colcon build --packages-select ur_app_demo
 source install/setup.bash
 ```
 
@@ -124,7 +124,7 @@ sudo rosdep init   # only the first time on this machine
 rosdep update
 rosdep install --from-paths src --ignore-src -r -y
 
-colcon build --packages-select ur_app_bringup
+colcon build --packages-select ur_app_demo
 source install/setup.bash
 ```
 
@@ -140,15 +140,20 @@ echo "source ~/robotics_project/install/setup.bash" >> ~/.bashrc
 ```text
 robotics_project/
 └── src/
-    └── ur_app_bringup/
-        ├── CMakeLists.txt      # installs scripts/waypoints.py as "waypoints"
-        ├── package.xml
-        └── scripts/
-            └── waypoints.py    # edit the waypoint list here
+    ├── ur_app_bringup/                 # (empty CMake package, for later bringup files)
+    └── ur_app_control/
+        └── ur_app_demo_py/             # ROS package "ur_app_demo"
+            ├── setup.py                # registers the executables below
+            ├── package.xml
+            ├── launch/
+            │   └── simple_move.launch.py
+            └── ur_app_demo/
+                ├── simple_move.py      # move to one pose
+                └── waypoints.py        # move through a list of poses (edit here)
 ```
 
-To add another script, put it in `scripts/`, make it executable
-(`chmod +x`), and add it to the `install(PROGRAMS ...)` block in `CMakeLists.txt`.
+To add another script, put it in `ur_app_demo/` with a `main()` function and add a
+line to `console_scripts` in `setup.py`.
 
 ---
 
@@ -180,7 +185,7 @@ ros2 control list_controllers  # joint_state_broadcaster + a trajectory controll
 | "Joint states are not available yet" | Start Terminal 1 first and check `use_mock_hardware:=true`. Check `ros2 topic echo /joint_states`. |
 | Plans but doesn't move | Run `ros2 control list_controllers` and check the trajectory controller is active. |
 | A waypoint fails | The pose may be out of reach or in collision. Try a point closer to the base or change the orientation. |
-| `No executable found` | Rebuild and `source install/setup.bash`. Check `ros2 pkg executables ur_app_bringup`. |
+| `No executable found` | Rebuild and `source install/setup.bash`. Check `ros2 pkg executables ur_app_demo`. |
 | `No module named pymoveit2` | Install it (see Setup step 2). |
 | Two RViz windows | Keep `launch_rviz:=false` in Terminal 1. |
 

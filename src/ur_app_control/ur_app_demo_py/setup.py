@@ -24,6 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             'simple_move = ur_app_demo.simple_move:main',
+            'waypoints = ur_app_demo.waypoints:main',
         ],
     },
 )
