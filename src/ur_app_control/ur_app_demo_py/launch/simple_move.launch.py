@@ -20,7 +20,7 @@ import os
 def generate_launch_description():
 
     ur_type = LaunchConfiguration("ur_type")
-    robot_ip = LaunchConfiguration("robot_ip")
+    #robot_ip = LaunchConfiguration("robot_ip")
 
     ur_moveit_launch = os.path.join(
         get_package_share_directory("ur_moveit_config"),
@@ -33,7 +33,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(ur_moveit_launch),
         launch_arguments={
             "ur_type": ur_type,
-            "robot_ip": robot_ip,
+            #"robot_ip": robot_ip,
             "launch_rviz": "false",
         }.items(),
     )
@@ -51,11 +51,11 @@ def generate_launch_description():
             "ur_type",
             default_value="ur5e",
         ),
-
+        """
         DeclareLaunchArgument(
             "robot_ip",
             default_value="192.168.0.10",
-        ),
+        )""",
 
         moveit,
 

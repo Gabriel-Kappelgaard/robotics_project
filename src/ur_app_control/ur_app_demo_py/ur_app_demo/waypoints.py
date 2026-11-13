@@ -35,11 +35,12 @@ from ur_app_demo.simple_move import GROUP, JOINT_NAMES, BASE_LINK, END_EFFECTOR
 # EDIT HERE
 # ---------------------------------------------------------------------------
 WAYPOINTS = [
-    {"name": "home",    "joints": [0, -90, 90, -90, -90, 0]},
-    {"name": "point_A", "pose": [0.40,  0.20, 0.40, 180, 0, 0]},
-    {"name": "point_B", "pose": [0.40, -0.20, 0.40, 180, 0, 0], "linear": True},
-    {"name": "point_C", "pose": [0.30,  0.00, 0.25, 180, 0, 0]},
-    {"name": "home",    "joints": [0, -90, 90, -90, -90, 0]},
+    {"name": "home",    "joints": [1, -119, -115, -37, 90, 90]},
+    {"name": "point_A",  "joints": [1, -141, -74, -54, 90, 90]},
+    {"name": "point_B",  "joints": [-16, -156, -40, -71, 90, 90]},
+    {"name": "point_C",  "joints": [-41, -120, -110, -40, 90, 90]},
+    {"name": "point_D",  "joints": [-4, -97, -79, -90, 90, 90]},
+    {"name": "home",    "joints": [1, -119, -115, -37, 90, 90]},
 ]
 
 SPEED = 0.2          # 0.0-1.0, fraction of max velocity
