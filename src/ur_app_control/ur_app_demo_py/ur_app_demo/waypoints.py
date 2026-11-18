@@ -28,6 +28,9 @@ from rclpy.executors import MultiThreadedExecutor
 from scipy.spatial.transform import Rotation
 from pymoveit2 import MoveIt2
 
+from rclpy.qos import qos_profile_sensor_data
+from std_msgs.msg import Bool
+
 # Reuse the robot configuration from simple_move.py
 from ur_app_demo.simple_move import GROUP, JOINT_NAMES, BASE_LINK, END_EFFECTOR
 
@@ -46,31 +49,17 @@ WAYPOINTS = [
 ]
 """
 WAYPOINTS = [
-    {"name": "home",    "joints": [0, -90, 90, -90, -90, 0]},
-    {"name": "point_A", "pose": [0.40,  0.20, 0.40, 180, 0, 0]},
-    {"name": "point_B", "pose": [0.40, -0.20, 0.40, 180, 0, 0], "linear": True},
-    {"name": "point_C", "pose": [0.30,  0.00, 0.25, 180, 0, 0]},
-    {"name": "home",    "joints": [0, -90, 90, -90, -90, 0]},
+    #{"name": "home",    "joints": [0, -90, 90, -90, -90, 0]},
+    {"name": "point_A", "pose": [0.40,  0.20, 0.43, 180, 0, 0], "linear": False},
+    {"name": "point_B", "pose": [0.40, -0.20, 0.40, 180, 0, 0], "linear": False},
+    {"name": "point_C", "pose": [0.30,  0.10, 0.25, 180, 0, 0], "linear": False},
+    #{"name": "home",    "joints": [0, -90, 90, -90, -90, 0]},
 ]
 
 SPEED = 0.2          # 0.0-1.0, fraction of max velocity
 ACCELERATION = 0.2   # 0.0-1.0, fraction of max acceleration
 PAUSE_SECONDS = 0.5  # pause at each waypoint
 # ---------------------------------------------------------------------------
-
-
-def rpy_to_quat(roll, pitch, yaw):
-    """Roll, pitch, yaw in degrees -> quaternion [x, y, z, w]."""
-    r, p, y = (math.radians(a) / 2.0 for a in (roll, pitch, yaw))
-    cr, sr = math.cos(r), math.sin(r)
-    cp, sp = math.cos(p), math.sin(p)
-    cy, sy = math.cos(y), math.sin(y)
-    return [
-        sr * cp * cy - cr * sp * sy,
-        cr * sp * cy + sr * cp * sy,
-        cr * cp * sy - sr * sp * cy,
-        cr * cp * cy + sr * sp * sy,
-    ]
 
 
 class WaypointMove(Node):
@@ -89,6 +78,11 @@ class WaypointMove(Node):
         self.moveit2.max_acceleration = ACCELERATION
 
         self.get_logger().info("pymoveit2 initialized")
+
+        self.stopped = False
+        # Best-effort QoS matches both reliable and best-effort publishers (micro-ROS).
+        self.create_subscription(
+            Bool, "collision_stop", self.on_stop, qos_profile_sensor_data)
 
     def move_to_waypoint(self, waypoint):
         """Plan and execute one waypoint. Returns True on success."""
@@ -112,11 +106,20 @@ class WaypointMove(Node):
 
         return self.moveit2.wait_until_executed()
 
+    def on_stop(self, msg):
+        if msg.data and not self.stopped:
+            self.stopped = True
+            self.get_logger().error("collision_stop received, cancelling motion")
+            self.moveit2.cancel_execution()
+
     def run(self):
         for i, waypoint in enumerate(WAYPOINTS, start=1):
             name = waypoint.get("name", f"#{i}")
             self.get_logger().info(f"[{i}/{len(WAYPOINTS)}] Moving to {name}")
 
+            if self.stopped:
+                self.get_logger().error("Stopped by collision_stop")
+                return
             if not self.move_to_waypoint(waypoint):
                 self.get_logger().error(f"Failed to reach {name}, stopping")
                 return
