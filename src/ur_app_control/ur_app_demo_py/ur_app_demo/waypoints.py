@@ -25,6 +25,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 
+from scipy.spatial.transform import Rotation
 from pymoveit2 import MoveIt2
 
 # Reuse the robot configuration from simple_move.py
@@ -34,6 +35,7 @@ from ur_app_demo.simple_move import GROUP, JOINT_NAMES, BASE_LINK, END_EFFECTOR
 # ---------------------------------------------------------------------------
 # EDIT HERE
 # ---------------------------------------------------------------------------
+""""
 WAYPOINTS = [
     {"name": "home",    "joints": [1, -119, -115, -37, 90, 90]},
     {"name": "point_A",  "joints": [1, -141, -74, -54, 90, 90]},
@@ -41,6 +43,14 @@ WAYPOINTS = [
     {"name": "point_C",  "joints": [-41, -120, -110, -40, 90, 90]},
     {"name": "point_D",  "joints": [-4, -97, -79, -90, 90, 90]},
     {"name": "home",    "joints": [1, -119, -115, -37, 90, 90]},
+]
+"""
+WAYPOINTS = [
+    {"name": "home",    "joints": [0, -90, 90, -90, -90, 0]},
+    {"name": "point_A", "pose": [0.40,  0.20, 0.40, 180, 0, 0]},
+    {"name": "point_B", "pose": [0.40, -0.20, 0.40, 180, 0, 0], "linear": True},
+    {"name": "point_C", "pose": [0.30,  0.00, 0.25, 180, 0, 0]},
+    {"name": "home",    "joints": [0, -90, 90, -90, -90, 0]},
 ]
 
 SPEED = 0.2          # 0.0-1.0, fraction of max velocity
@@ -86,15 +96,19 @@ class WaypointMove(Node):
         if "joints" in waypoint:
             joints = [math.radians(a) for a in waypoint["joints"]]
             self.moveit2.move_to_configuration(joints)
-        else:
+        elif "pose" in waypoint:
             x, y, z, roll, pitch, yaw = waypoint["pose"]
+            quat = Rotation.from_euler('xyz', [roll, pitch, yaw], degrees=True).as_quat()
             self.moveit2.move_to_pose(
                 position=[x, y, z],
-                quat_xyzw=rpy_to_quat(roll, pitch, yaw),
+                quat_xyzw=quat,
                 frame_id=BASE_LINK,
                 target_link=END_EFFECTOR,
                 cartesian=waypoint.get("linear", False),
             )
+        else:
+            raise SyntaxError("The move has to be either joints or pose")
+
 
         return self.moveit2.wait_until_executed()
 

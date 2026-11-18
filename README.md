@@ -25,7 +25,7 @@ Do the one-time [setup](#setup) first. Then open three terminals:
 ```bash
 source /opt/ros/jazzy/setup.bash
 ros2 launch ur_robot_driver ur_control.launch.py \
-    ur_type:=ur5e use_mock_hardware:=true launch_rviz:=false
+    ur_type:=ur5e robot_ip:=yyy.yyy.yyy.yyy use_mock_hardware:=true launch_rviz:=false
 ```
 
 **Terminal 2: MoveIt (opens RViz)**
@@ -35,6 +35,10 @@ ros2 launch ur_moveit_config ur_moveit.launch.py ur_type:=ur5e
 ```
 
 **Terminal 3: move through the waypoints**
+```bash
+colcon build --packages-select ur_app_demo
+source install/setup.bash
+```
 ```bash
 source /opt/ros/jazzy/setup.bash
 source ~/robotics_project/install/setup.bash
@@ -119,13 +123,11 @@ with the workspace.
 ```bash
 git clone https://github.com/Gabriel-Kappelgaard/robotics_project.git ~/robotics_project
 cd ~/robotics_project
-
+```
+```bash
 sudo rosdep init   # only the first time on this machine
 rosdep update
 rosdep install --from-paths src --ignore-src -r -y
-
-colcon build --packages-select ur_app_demo
-source install/setup.bash
 ```
 
 Optional, to source the workspace in every new terminal:
