@@ -9,7 +9,7 @@ def generate_launch_description():
         DeclareLaunchArgument('port', default_value='/dev/ttyACM0'),
         DeclareLaunchArgument('baud', default_value='115200'),
         Node(
-            package='ur_app_demo_py',  # must match <name> in package.xml
+            package='ur_app_demo',  # must match <name> in package.xml
             executable='arduino_bridge',
             name='arduino_bridge',
             output='screen',

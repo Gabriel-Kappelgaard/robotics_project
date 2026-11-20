@@ -25,6 +25,7 @@ class ArduinoBridge(Node):
             line, self._buf = self._buf.split(b'\n', 1)
             try:
                 self._pub.publish(Int32(data=int(line.strip())))
+                self.get_logger().info(f'published {line.strip()!r}', throttle_duration_sec=1.0)
             except ValueError:
                 self.get_logger().warn(f'bad line: {line!r}')
 
