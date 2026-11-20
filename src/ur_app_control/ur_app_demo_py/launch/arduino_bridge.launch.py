@@ -20,4 +20,11 @@ def generate_launch_description():
                 'baud': LaunchConfiguration('baud'),
             }],
         ),
+        Node(
+            package='ur_app_demo',
+            executable='stop_on_force',
+            parameters=[{
+                'threshold': 512
+            }],
+        ),
     ])

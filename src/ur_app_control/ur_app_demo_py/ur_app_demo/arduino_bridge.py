@@ -10,13 +10,13 @@ class ArduinoBridge(Node):
     def __init__(self):
         super().__init__('arduino_bridge')
         self.declare_parameter('port', '/dev/ttyACM0')
-        self.declare_parameter('baud', 115200)
+        self.declare_parameter('baud', 9600)
         self._ser = serial.Serial(
             self.get_parameter('port').value,
             self.get_parameter('baud').value,
             timeout=0)
         self._buf = b''
-        self._pub = self.create_publisher(Int32, 'arduino_analog', 10)
+        self._pub = self.create_publisher(Int32, 'arduino_force', 10)
         self.create_timer(0.01, self._poll)
 
     def _poll(self):

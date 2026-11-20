@@ -26,6 +26,7 @@ setup(
             'simple_move = ur_app_demo.simple_move:main',
             'waypoints = ur_app_demo.waypoints:main',
             'arduino_bridge = ur_app_demo.arduino_bridge:main',
+            'stop_on_force = ur_app_demo.stop_on_force:main',
         ],
     },
 )
