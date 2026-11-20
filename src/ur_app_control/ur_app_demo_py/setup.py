@@ -25,6 +25,7 @@ setup(
         'console_scripts': [
             'simple_move = ur_app_demo.simple_move:main',
             'waypoints = ur_app_demo.waypoints:main',
+            'arduino_bridge = ur_app_control.arduino_bridge:main',
         ],
     },
 )
