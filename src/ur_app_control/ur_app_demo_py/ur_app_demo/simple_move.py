@@ -32,7 +32,6 @@ END_EFFECTOR = "tool0"
 
 
 class SimpleMove(Node):
-
     def __init__(self):
         super().__init__("simple_move")
 

@@ -25,7 +25,11 @@ import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 
+from scipy.spatial.transform import Rotation
 from pymoveit2 import MoveIt2
+
+from rclpy.qos import qos_profile_sensor_data
+from std_msgs.msg import Bool
 
 # Reuse the robot configuration from simple_move.py
 from ur_app_demo.simple_move import GROUP, JOINT_NAMES, BASE_LINK, END_EFFECTOR
@@ -34,6 +38,7 @@ from ur_app_demo.simple_move import GROUP, JOINT_NAMES, BASE_LINK, END_EFFECTOR
 # ---------------------------------------------------------------------------
 # EDIT HERE
 # ---------------------------------------------------------------------------
+""""
 WAYPOINTS = [
     {"name": "home",    "joints": [1, -119, -115, -37, 90, 90]},
     {"name": "point_A",  "joints": [1, -141, -74, -54, 90, 90]},
@@ -42,25 +47,19 @@ WAYPOINTS = [
     {"name": "point_D",  "joints": [-4, -97, -79, -90, 90, 90]},
     {"name": "home",    "joints": [1, -119, -115, -37, 90, 90]},
 ]
+"""
+WAYPOINTS = [
+    #{"name": "home",    "joints": [0, -90, 90, -90, -90, 0]},
+    {"name": "point_A", "pose": [0.40,  0.20, 0.43, 180, 0, 0], "linear": False},
+    {"name": "point_B", "pose": [0.40, -0.20, 0.40, 180, 0, 0], "linear": False},
+    {"name": "point_C", "pose": [0.30,  0.10, 0.25, 180, 0, 0], "linear": False},
+    #{"name": "home",    "joints": [0, -90, 90, -90, -90, 0]},
+]
 
 SPEED = 0.2          # 0.0-1.0, fraction of max velocity
 ACCELERATION = 0.2   # 0.0-1.0, fraction of max acceleration
 PAUSE_SECONDS = 0.5  # pause at each waypoint
 # ---------------------------------------------------------------------------
-
-
-def rpy_to_quat(roll, pitch, yaw):
-    """Roll, pitch, yaw in degrees -> quaternion [x, y, z, w]."""
-    r, p, y = (math.radians(a) / 2.0 for a in (roll, pitch, yaw))
-    cr, sr = math.cos(r), math.sin(r)
-    cp, sp = math.cos(p), math.sin(p)
-    cy, sy = math.cos(y), math.sin(y)
-    return [
-        sr * cp * cy - cr * sp * sy,
-        cr * sp * cy + sr * cp * sy,
-        cr * cp * sy - sr * sp * cy,
-        cr * cp * cy + sr * sp * sy,
-    ]
 
 
 class WaypointMove(Node):
@@ -80,29 +79,47 @@ class WaypointMove(Node):
 
         self.get_logger().info("pymoveit2 initialized")
 
+        self.stopped = False
+        # Best-effort QoS matches both reliable and best-effort publishers (micro-ROS).
+        self.create_subscription(
+            Bool, "collision_stop", self.on_stop, qos_profile_sensor_data)
+
     def move_to_waypoint(self, waypoint):
         """Plan and execute one waypoint. Returns True on success."""
 
         if "joints" in waypoint:
             joints = [math.radians(a) for a in waypoint["joints"]]
             self.moveit2.move_to_configuration(joints)
-        else:
+        elif "pose" in waypoint:
             x, y, z, roll, pitch, yaw = waypoint["pose"]
+            quat = Rotation.from_euler('xyz', [roll, pitch, yaw], degrees=True).as_quat()
             self.moveit2.move_to_pose(
                 position=[x, y, z],
-                quat_xyzw=rpy_to_quat(roll, pitch, yaw),
+                quat_xyzw=quat,
                 frame_id=BASE_LINK,
                 target_link=END_EFFECTOR,
                 cartesian=waypoint.get("linear", False),
             )
+        else:
+            raise SyntaxError("The move has to be either joints or pose")
+
 
         return self.moveit2.wait_until_executed()
+
+    def on_stop(self, msg):
+        if msg.data and not self.stopped:
+            self.stopped = True
+            self.get_logger().error("collision_stop received, cancelling motion")
+            self.moveit2.cancel_execution()
 
     def run(self):
         for i, waypoint in enumerate(WAYPOINTS, start=1):
             name = waypoint.get("name", f"#{i}")
             self.get_logger().info(f"[{i}/{len(WAYPOINTS)}] Moving to {name}")
 
+            if self.stopped:
+                self.get_logger().error("Stopped by collision_stop")
+                return
             if not self.move_to_waypoint(waypoint):
                 self.get_logger().error(f"Failed to reach {name}, stopping")
                 return
