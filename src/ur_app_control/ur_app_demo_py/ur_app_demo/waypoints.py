@@ -5,6 +5,9 @@ Move a UR robot through a list of absolute waypoints using pymoveit2.
 Same setup as simple_move.py, but instead of one target it visits every
 entry in WAYPOINTS, top to bottom. Requires a running MoveIt 2 move_group.
 
+If stop_on_force stops the robot (/force_stop == True), the script waits until
+/force_stop goes False, then re-plans to the SAME waypoint and continues.
+
 Run:
     ros2 run ur_app_demo waypoints
 
@@ -28,7 +31,7 @@ from rclpy.executors import MultiThreadedExecutor
 from scipy.spatial.transform import Rotation
 from pymoveit2 import MoveIt2
 
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import Bool
 
 # Reuse the robot configuration from simple_move.py
@@ -59,6 +62,7 @@ WAYPOINTS = [
 SPEED = 0.2          # 0.0-1.0, fraction of max velocity
 ACCELERATION = 0.2   # 0.0-1.0, fraction of max acceleration
 PAUSE_SECONDS = 0.5  # pause at each waypoint
+RESUME_DELAY = 1.0   # s to wait after /force_stop goes False before moving again
 # ---------------------------------------------------------------------------
 
 
@@ -79,10 +83,28 @@ class WaypointMove(Node):
 
         self.get_logger().info("pymoveit2 initialized")
 
-        self.stopped = False
-        # Best-effort QoS matches both reliable and best-effort publishers (micro-ROS).
-        self.create_subscription(
-            Bool, "collision_stop", self.on_stop, qos_profile_sensor_data)
+        self._force_stop = False   # current state from stop_on_force
+        self._stop_seen = False    # a stop happened during the current move
+        latched = QoSProfile(
+            depth=1,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self.create_subscription(Bool, "force_stop", self._on_force_stop, latched)
+
+    def _on_force_stop(self, msg):
+        self._force_stop = msg.data
+        if msg.data:
+            self._stop_seen = True
+
+    def _wait_release(self):
+        """Block while the force stop is active, then wait RESUME_DELAY."""
+        if not self._force_stop:
+            return
+        self.get_logger().warn("Force stop active, waiting for release")
+        while self._force_stop and rclpy.ok():
+            time.sleep(0.05)
+        time.sleep(RESUME_DELAY)
+        self.get_logger().info("Released, resuming")
 
     def move_to_waypoint(self, waypoint):
         """Plan and execute one waypoint. Returns True on success."""
@@ -103,26 +125,22 @@ class WaypointMove(Node):
         else:
             raise SyntaxError("The move has to be either joints or pose")
 
-
         return self.moveit2.wait_until_executed()
-
-    def on_stop(self, msg):
-        if msg.data and not self.stopped:
-            self.stopped = True
-            self.get_logger().error("collision_stop received, cancelling motion")
-            self.moveit2.cancel_execution()
 
     def run(self):
         for i, waypoint in enumerate(WAYPOINTS, start=1):
             name = waypoint.get("name", f"#{i}")
             self.get_logger().info(f"[{i}/{len(WAYPOINTS)}] Moving to {name}")
 
-            if self.stopped:
-                self.get_logger().error("Stopped by collision_stop")
-                return
-            if not self.move_to_waypoint(waypoint):
-                self.get_logger().error(f"Failed to reach {name}, stopping")
-                return
+            while rclpy.ok():
+                self._wait_release()           # also covers a stop during the pause
+                self._stop_seen = False
+                if self.move_to_waypoint(waypoint):
+                    break
+                if not self._stop_seen:        # failed for another reason
+                    self.get_logger().error(f"Failed to reach {name}, stopping")
+                    return
+                # stopped by force sensor: loop, wait for release, re-plan to same target
 
             time.sleep(PAUSE_SECONDS)
 
